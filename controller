@@ -1,0 +1,82 @@
+({
+    doInit:function(component,event,helper){ 
+        component.set("v.showSpinner", true);
+        var action = component.get("c.getDefaultListView");
+        
+        action.setParams({
+            strObject : component.get("v.tabsName")
+        });
+        action.setCallback(this, function (response) {
+            var state = response.getState();
+            if (state === "SUCCESS") {
+                var result = response.getReturnValue();
+                console.log('result :: ',result);
+                console.log('tabname :: ',component.get("v.tabsName"));
+                console.log('selectedOptions :: ',result.selectedOptions);
+                console.log('availableOptions :: ',result.availableOptions);
+                component.set("v.slectedFieldsClone", result.selectedOptions.sort());
+                component.set("v.availableOptions", result.availableOptions);
+                component.set("v.currentListView", result.defaultView);
+                component.set("v.currentListViewName", result.defaultView.Name);
+            }else{
+                alert('Callback Failed...');
+            }
+            component.set("v.showSpinner", false); 
+        });
+        $A.enqueueAction(action);
+    },
+
+    closeModal:function(component,event,helper){    
+        component.set('v.viewModal',false);
+        component.set('v.enableSave', false);
+    },
+
+    handleChange: function (component, event) {
+        // This will contain an array of the "value" attribute of the selected options
+        var selectedOptionValue = event.getParam("value");
+        component.set('v.slectedFieldsClone', selectedOptionValue);
+        component.set('v.disableSave', false);
+    },
+    
+    handleInputChange: function (component, event) {
+        // This will contain an array of the "value" attribute of the selected options
+        component.set('v.disableSave', false);
+    },
+
+    saveRecord:function(component,event,helper){    
+        component.set("v.showSpinner", true);
+        var action = component.get("c.saveListView");
+        var selectedFields = component.get("v.slectedFieldsClone").sort();
+       
+        action.setParams({
+            name : component.get("v.currentListViewName"),
+            selectedField : selectedFields,
+            currentListView : component.get("v.currentListView"),
+            strObject : component.get("v.tabsName")
+        });
+        action.setCallback(this, function (response) {
+            var state = response.getState();
+            if (state === "SUCCESS") {
+                var result = response.getReturnValue();
+                if(result == 'success') {
+                    helper.toastMessage(component, event, helper, 'Success','List view created successfully.','success');
+                    component.set("v.slectedFields", selectedFields);
+                    var cmpEvent = $A.get("e.c:CustomerCommunity_ListViewColumnEvent"); 
+                    //Set event attribute value
+                    cmpEvent.setParams({"selectedFields" : selectedFields, "tabsName" : component.get("v.tabsName")}); 
+                    cmpEvent.fire();
+                } else{
+                    helper.toastMessage(component, event, helper, 'Error', result,'error');
+                }
+                component.set("v.showSpinner", false); 
+                component.set('v.viewModal',false);
+                
+            }else{
+                alert('Callback Failed...');
+            }
+            
+            
+        });
+        $A.enqueueAction(action);
+    },
+})
