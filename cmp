@@ -1,0 +1,69 @@
+<aura:component controller="CustomerCommunity_ListViewController">
+    <!-- Attributes to display the values according to screen -->
+    <aura:attribute name = "viewModal" type="boolean" default="false"/>
+    <aura:attribute name = "disableSave" type="boolean" default="true"/>
+    <aura:attribute name = "currentSlectedTab" type="String" default=""/>  
+    <aura:attribute name = "currentListViewName" type="String" default=""/> 
+    <aura:attribute name = "availableOptions" type="List" default="[]"/>
+    <aura:attribute name = "slectedFields" type="List" default="[]"/>
+    <aura:attribute name = "slectedFieldsClone" type="List" default="[]"/>
+    <aura:attribute name = "min" type="Integer" default="1"/>
+    <aura:attribute name = "currentListView" type="Object"/>
+    <aura:attribute name= "showSpinner" type="boolean" default="FALSE"/>
+    <aura:attribute name="tabsName" type="String" default=""/>
+    <aura:attribute name="userPackage" type="String" default=""/>
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:registerEvent name="listViewColumnEvent" type="c:CustomerCommunity_ListViewColumnEvent"/>
+    
+    <div aura:id="editDialog" role="dialog" tabindex="-1" aria-labelledby="header43"  class="slds-modal slds-fade-in-open slds-modal_small slds-backdrop">
+        <!--loading spinner start-->
+    <aura:if isTrue="{!v.showSpinner}">
+        <div class="slds-align--absolute-center">
+            <div aura:id="spinnerId" class="slds-spinner_container">
+                <div class="slds-spinner--brand  slds-spinner slds-spinner--large slds-is-relative" role="alert">
+                    <span class="slds-assistive-text">Loading...</span>
+                    <div class="slds-spinner__dot-a"></div>
+                    <div class="slds-spinner__dot-b"></div>
+                </div>
+            </div>
+        </div>
+    </aura:if>
+    <!-- Loading spinner end--> 
+        <div class="slds-modal__container slds-modal_small ">
+            <div class="slds-modal__header">
+                <h2 class="slds-text-heading--medium">Selects Fields to Display</h2>
+                <button class="slds-button slds-modal__close slds-button--icon" title="Close" onclick="{!c.closeModal}">
+                    <lightning:icon iconName="utility:close" size="medium" />
+                    <span class="slds-assistive-text">Close</span>
+                </button>
+            </div>
+                <div class="slds-modal__content slds-p-around_medium">
+                <!--  Write Your Content here  -->
+                <lightning:input name="listViewName" label="List View Name" value="{!v.currentListViewName}" 
+                    oncommit="{!c.handleInputChange}"/>
+
+                <lightning:dualListbox name="List View"
+                        label= ""
+                        sourceLabel="Available Fields"
+                        selectedLabel="Selected Fields"
+                        fieldLevelHelp="Select your preferred fields"
+                        value="{!v.slectedFieldsClone}" 
+                        options="{!v.availableOptions}"
+                        onchange="{!c.handleChange }"
+                        min="{!v.min}"
+                        disableReordering="true"/>
+                <!-- <aura:if isTrue="{!v.userPackage == 'Basic'}">
+                    <div class="linkcolorText" >
+                        <p style="color:#3BD4A2;padding-top:1.15rem;padding-bottom:0.2rem;font-size:medium">* Fields from FactSet integration will only be visible to Professional/Master package subscription. Please upgrade.</p>
+                    </div>
+                </aura:if> -->
+            </div>
+
+            <footer class="slds-modal__footer" style="text-align: center;">
+                <lightning:button name="cancelAction" class="slds-p-around-small" label="Cancel" onclick="{!c.closeModal}" variant="brand"/>
+                <lightning:button name="showAction" class="slds-p-around-small" label="Save" variant="brand" onclick="{!c.saveRecord}" disabled="{!v.disableSave}"/>
+            </footer>
+        </div>
+    </div>
+    
+</aura:component>
