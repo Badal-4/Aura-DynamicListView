@@ -1,0 +1,122 @@
+public without sharing class CustomerCommunity_ListViewController {
+    @AuraEnabled
+    public static ListViewWrapper getDefaultListView(String strObject) {
+        ListViewWrapper wrapper = new ListViewWrapper();
+        List<Options> availabaleFields = new List<Options>();
+        List<String> selectedFields = new List<String>();
+        List<String> fieldsToHide = new List<String>();
+        List<ListView__c> defaultlistView = new List<ListView__c>();
+
+        if(!String.isBlank(strObject)) {
+            User loggedinUser = UtilityClass.getLoggedInUser();
+            
+            if(strObject == 'Account') {
+                if(loggedinUser.Contact.Account.Billing_Master__r.Name == AccniteConstants.BILLING_PKG_BASIC) {
+                    fieldsToHide = new List<String>{'% of Shares Outstanding', 'AuR (USD)', 'Shares Held', 'Style', 
+                                                'Turnover Label'};
+                }
+            }
+            else if(strObject == 'Contact'){
+                if(loggedinUser.Contact.Account.Billing_Master__r.Name == AccniteConstants.BILLING_PKG_BASIC) {
+                    fieldsToHide = new List<String>{'% of Shares Outstanding', 'AuR (USD)', 'Potential (USD)', 'Shares Held', 
+                                                'Status', 'Middle Name', 'Rank'};
+                }  
+            }
+            defaultlistView = [SELECT Account__c,AvailableFields__c,User_Associated__c,DefaultView__c,Id,Name,Object__c,SelectedFields__c 
+                                FROM ListView__c 
+                                WHERE Object__c = :strObject
+                                AND DefaultView__c = TRUE
+                                AND User_Associated__c = :loggedinUser.Id];
+            if(defaultlistView == null || defaultlistView.isEmpty()) {
+                defaultlistView = [SELECT Account__c,AvailableFields__c,User_Associated__c,DefaultView__c,Id,Name,Object__c,SelectedFields__c 
+                                    FROM ListView__c 
+                                    WHERE Object__c = :strObject
+                                    AND DefaultView__c = TRUE
+                                    AND User_Associated__c = ''];
+            }
+            if(defaultlistView[0].SelectedFields__c != '') {
+                selectedFields = defaultlistView[0].SelectedFields__c.split(',');
+            }
+            for(String availableField :defaultlistView[0].AvailableFields__c.split(',')) {
+                if(fieldsToHide.isEmpty() || !fieldsToHide.contains(availableField)) {
+                    Options opt = new Options();
+                    opt.label = availableField;
+                    opt.value = availableField;
+                    availabaleFields.add(opt);
+                }
+                if(selectedFields.contains(availableField) && fieldsToHide.contains(availableField)) {
+                    selectedFields.remove(selectedFields.indexOf(availableField));
+                }
+            }
+            wrapper.selectedOptions= selectedFields;
+            wrapper.availableOptions = availabaleFields;
+            wrapper.defaultView = defaultlistView[0];
+        }
+        return wrapper;
+    }
+
+    @AuraEnabled
+    public static String saveListView(String name, List<String> selectedField, 
+                                        ListView__c currentListView, String strObject) {
+        String resonse = '';
+        List<ListView__c> listViewToUpsert = new List<ListView__c>();
+        try{
+            if(!String.isBlank(name) && !selectedField.isEmpty()) {
+                User loggedinUser = UtilityClass.getLoggedInUser();
+                List<ListView__c> defaultlistViews = new List<ListView__c>();
+                
+                defaultlistViews = [SELECT Account__c,AvailableFields__c,User_Associated__c,DefaultView__c,Id,Name,Object__c,SelectedFields__c 
+                                    FROM ListView__c 
+                                    WHERE Object__c = :strObject
+                                    AND DefaultView__c = true
+                                    AND User_Associated__c = :loggedinUser.Id];
+                for(ListView__c obj :defaultlistViews) {
+                    obj.DefaultView__c = false;
+                    listViewToUpsert.add(obj);
+                }
+                // Logic to create new listview
+                ListView__c newObj = new ListView__c();
+                newObj.AvailableFields__c = currentListView.AvailableFields__c;
+                newObj.DefaultView__c = true;
+                newObj.SelectedFields__c = getSelectedFieldStr(selectedField);
+                newObj.User_Associated__c = loggedinUser.Id;
+                newObj.Object__c = strObject; 
+                newObj.Name = name; 
+                listViewToUpsert.add(newObj);
+                if(!listViewToUpsert.isEmpty()) {
+                    upsert listViewToUpsert;
+                    resonse = 'success';
+                }
+            }
+        } 
+        catch(Exception ex) {
+            resonse = 'Error '+ ex.getMessage();
+        }
+        return resonse;
+    }
+
+    public static String getSelectedFieldStr(List<String> slectedFields){
+        String commaSepratedFields='';
+        for(String str : slectedFields){
+            commaSepratedFields += str + ',' ;
+        }
+        // remove last additional comma from string
+        commaSepratedFields = commaSepratedFields.subString(0, commaSepratedFields.length());
+        return commaSepratedFields;
+    }
+
+    public class ListViewWrapper {
+        @AuraEnabled
+        public ListView__c defaultView{get;set;}
+        @AuraEnabled
+        public List<Options> availableOptions{get;set;}
+        @AuraEnabled
+        public List<String> selectedOptions{get;set;}
+    }  
+    public class Options { 
+        @AuraEnabled
+        public string label{get;set;}
+        @AuraEnabled
+        public string value{get;set;}
+    }     
+}
